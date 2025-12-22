@@ -17,7 +17,7 @@ export function NativeSelect({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className={cn(
-        "w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200",
+        "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-200",
         className
       )}
     >

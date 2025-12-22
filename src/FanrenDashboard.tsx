@@ -331,7 +331,7 @@ function ChipCheckbox({ checked, label, onChange }: { checked: boolean; label: s
       type="button"
       onClick={() => onChange(!checked)}
       className={cn(
-        "inline-flex items-center rounded-2xl border px-3 py-1.5 text-sm transition",
+        "inline-flex items-center rounded-full border px-3 py-1.5 text-sm transition",
         checked ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
       )}
       aria-pressed={checked}
@@ -803,6 +803,14 @@ const usageRoot = useMemo(() => modelUsage.find((r: any) => String(r.dataset) ==
 
   const epOptions = useMemo(() => store.episodes.map((ep) => ({ label: `第 ${ep} 集`, value: ep })), [store.episodes]);
 
+  const uploadSummary = useMemo(() => {
+    if (!store.loadedFiles.length) return null;
+    const totalBytes = store.loadedFiles.reduce((sum, f) => sum + (f.size || 0), 0);
+    const sizeMb = totalBytes / (1024 * 1024);
+    const sizeLabel = sizeMb >= 1 ? `${sizeMb.toFixed(1)} MB` : `${Math.max(1, Math.round(sizeMb * 1024))} KB`;
+    return { count: store.loadedFiles.length, sizeLabel };
+  }, [store.loadedFiles]);
+
   const compareSeriesOptions = useMemo(() => {
     if (curveMode === "emo") return EMO_ORDER.map((k) => ({ label: k, value: k }));
     const keys = curveSeriesKeys.length ? curveSeriesKeys : ["ritual_call", "viewing_status", "emo_like", "emo_touching", "other"];
@@ -926,52 +934,65 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
   return (
     <div className="min-h-screen w-full">
       <div className="mx-auto max-w-6xl p-4 md:p-8">
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="flex flex-col gap-2">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                <h1 className="text-xl md:text-2xl font-semibold">凡人修仙传 · 弹幕/评论 情绪与互动模式可视化</h1>
-              </div>
-              <p className="text-sm text-slate-500 mt-1">上传 pipeline 产出 zip 或 tables 文件，自动识别并生成交互图表（v4：一键导出图包 + 自动生成图注/结论）。</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <input ref={inputRef} className="hidden" type="file" multiple accept=".zip,.csv,.json" onChange={onPickFiles} />
-              <Button onClick={() => inputRef.current?.click()}>
-                <Upload className="h-4 w-4" />
-                上传文件/Zip
-              </Button>
-              <Button variant="secondary" onClick={exportPack} disabled={!ready}>
-                <FileDown className="h-4 w-4" />
-                一键导出图包
-              </Button>
-            </div>
-          </div>
-
-          {loading ? (
-            <Card>
-              <CardContent className="py-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="text-sm text-slate-500">{loading.label}</div>
-                  <div className="w-40">
-                    <Progress value={loading.progress} />
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="flex flex-col gap-3">
+          <Card className="border-slate-200/70 bg-white/80 backdrop-blur">
+            <CardHeader className="pb-4">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm">
+                      <BarChart3 className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h1 className="text-xl md:text-2xl font-semibold">凡人修仙传 · 弹幕/评论 情绪与互动模式可视化</h1>
+                      <p className="text-sm text-slate-500 mt-1">上传 pipeline 产出 zip 或 tables 文件，自动识别并生成交互图表（v4：一键导出图包 + 自动生成图注/结论）。</p>
+                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ) : null}
-          {loadError ? (
-            <Alert>
-              <AlertTitle>文件解析失败</AlertTitle>
-              <AlertDescription>{loadError}</AlertDescription>
-            </Alert>
-          ) : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  <input ref={inputRef} className="hidden" type="file" multiple accept=".zip,.csv,.json" onChange={onPickFiles} />
+                  <Button onClick={() => inputRef.current?.click()}>
+                    <Upload className="h-4 w-4" />
+                    上传文件/Zip
+                  </Button>
+                  <Button variant="secondary" onClick={exportPack} disabled={!ready}>
+                    <FileDown className="h-4 w-4" />
+                    一键导出图包
+                  </Button>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <Badge variant="default">自动图注</Badge>
+                <Badge>多集对比</Badge>
+                <Badge>PNG 导出</Badge>
+                {uploadSummary ? <Badge>已加载 {uploadSummary.count} 个文件 · {uploadSummary.sizeLabel}</Badge> : <Badge>支持 CSV / JSON / ZIP</Badge>}
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {loading ? (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="text-sm text-slate-500">{loading.label}</div>
+                    <div className="w-40">
+                      <Progress value={loading.progress} />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+              {loadError ? (
+                <Alert className="mt-3">
+                  <AlertTitle>文件解析失败</AlertTitle>
+                  <AlertDescription>{loadError}</AlertDescription>
+                </Alert>
+              ) : null}
 
-          {ready ? null : (
-            <div className="mt-4">
-              <EmptyState title="还没有数据" desc="请上传 outputs 的 zip（推荐）或 outputs/tables 下的 csv/json 文件。" />
-            </div>
-          )}
+              {ready ? null : (
+                <div className="mt-4">
+                  <EmptyState title="还没有数据" desc="请上传 outputs 的 zip（推荐）或 outputs/tables 下的 csv/json 文件。" />
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </motion.div>
 
         {ready ? (
@@ -1026,15 +1047,15 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
                     </div>
 
                     <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3">
+                      <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3">
                         <Switch checked={markPeak} onCheckedChange={setMarkPeak} />
                         <Label>标注峰值</Label>
                       </div>
-                      <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3">
+                      <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3">
                         <Switch checked={markIntervals} onCheckedChange={setMarkIntervals} />
                         <Label>标注Top区间</Label>
                       </div>
-                      <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                      <div className="rounded-xl border border-slate-200 bg-white p-3">
                         <div className="flex items-center justify-between">
                           <Label>区间窗口</Label>
                           <span className="text-xs text-slate-500">{intervalWindow} 分钟</span>
@@ -1049,7 +1070,7 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
                     </div>
 
                     {compareMode ? (
-                      <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3">
+                      <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
                         <div className="text-sm font-medium mb-2">选择参与曲线对比的集数</div>
                         <div className="flex flex-wrap gap-2">
                           {store.episodes.map((ep) => (
@@ -1209,7 +1230,7 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-                      <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                      <div className="rounded-xl border border-slate-200 bg-white p-3">
                         <Label>对比类型</Label>
                         <NativeSelect
                           value={distKind}
@@ -1232,7 +1253,7 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
                         ) : null}
                       </div>
 
-                      <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white p-3">
+                      <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-3">
                         <div className="text-sm font-medium mb-2">选择参与分布对比的集数</div>
                         <div className="flex flex-wrap gap-2">
                           {store.episodes.map((ep) => (
@@ -1346,12 +1367,12 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
                     </div>
 
                     {!compareMode ? (
-                      <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3">
+                      <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
                         <div className="text-sm font-medium mb-2">Top 区间（{intervalSeriesKey}，窗口={intervalWindow}分钟）</div>
                         {(intervalsSingle as any[]).length ? (
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                             {(intervalsSingle as any[]).map((it, i) => (
-                              <div key={i} className="rounded-2xl border border-slate-200 p-3">
+                              <div key={i} className="rounded-xl border border-slate-200 p-3">
                                 <div className="text-sm font-semibold">区间 {i + 1}: {it.start}m–{it.end}m</div>
                                 <div className="text-xs text-slate-500 mt-1">强度：{it.score.toFixed(2)}</div>
                               </div>
@@ -1362,7 +1383,7 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
                         )}
                       </div>
                     ) : (
-                      <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-3">
+                      <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
                         <div className="text-sm font-medium mb-2">多集摘要（峰值 & Top区间）</div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                           {compareEps.map((ep) => {
@@ -1370,7 +1391,7 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
                             const p = (comparePeaks as any[]).find((x) => x.epKey === epKey);
                             const ints = (intervalsCompare as any)[epKey] ?? [];
                             return (
-                              <div key={ep} className="rounded-2xl border border-slate-200 p-3">
+                              <div key={ep} className="rounded-xl border border-slate-200 p-3">
                                 <div className="text-sm font-semibold">第{ep}集</div>
                                 <div className="text-xs text-slate-500 mt-1">峰值：@{p?.minute ?? "—"}m</div>
                                 <div className="text-xs text-slate-500 mt-1">Top区间：{ints.slice(0, 3).map((it: any) => `${it.start}–${it.end}m`).join("、") || "—"}</div>
@@ -1400,7 +1421,7 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
                         <ScrollArea className="h-[360px] pr-1">
                           <div className="space-y-2">
                             {burstRows.map((r, idx) => (
-                              <div key={idx} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 p-3">
+                              <div key={idx} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3">
                                 <div className="min-w-0">
                                   <div className="text-sm font-medium truncate">{r.norm_content}</div>
                                   <div className="text-xs text-slate-500">sec_bin={r.sec_bin * 2}s ~ {r.sec_bin * 2 + 2}s</div>
@@ -1434,7 +1455,7 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
                         <ScrollArea className="h-[360px] pr-1">
                           <div className="space-y-2">
                             {filteredTerms.map((r, idx) => (
-                              <div key={idx} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 p-3">
+                              <div key={idx} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3">
                                 <div className="text-sm font-medium">{r.term}</div>
                                 <Badge>{r.cnt}</Badge>
                               </div>
@@ -1489,11 +1510,11 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
 
                     {reportText ? (
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                        <div className="rounded-xl border border-slate-200 bg-white p-3">
                           <div className="text-sm font-medium mb-2">预览（可复制）</div>
                           <pre className="text-xs whitespace-pre-wrap leading-relaxed">{reportText}</pre>
                         </div>
-                        <div className="rounded-2xl border border-slate-200 bg-white p-3">
+                        <div className="rounded-xl border border-slate-200 bg-white p-3">
                           <div className="text-sm font-medium mb-2">写作建议</div>
                           <ul className="text-sm text-slate-600 list-disc pl-5 space-y-1">
                             <li>把“Top区间”对应到剧情段落（你已有剧情功能说明），形成“定量→质性”的闭环。</li>
