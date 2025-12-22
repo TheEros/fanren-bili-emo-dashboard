@@ -129,7 +129,7 @@ function parseCsv(text: string): Promise<any[]> {
       dynamicTyping: true,
       skipEmptyLines: true,
       complete: (res) => resolve((res.data as any[]) ?? []),
-      error: (err) => reject(err),
+      error: (err: unknown) => reject(err),
     });
   });
 }
@@ -144,7 +144,7 @@ function toPercent(n: number) {
 }
 
 function niceKey(k: string) {
-  return k.replaceAll("_", " ").replace(/\b(emo|func|ep)\b/gi, (m) => m.toUpperCase());
+  return k.replace(/_/g, " ").replace(/\b(emo|func|ep)\b/gi, (m: string) => m.toUpperCase());
 }
 
 function downloadText(filename: string, text: string, mime = "text/plain;charset=utf-8") {
@@ -635,7 +635,7 @@ const usageRoot = useMemo(() => modelUsage.find((r: any) => String(r.dataset) ==
     const sample = curveData[0] as any;
     const keys = Object.keys(sample).filter((k) => !["episode_id", "minute"].includes(k));
     if (curveMode === "emo") {
-      const order = new Map(EMO_ORDER.map((k, i) => [k, i]));
+      const order = new Map<string, number>(EMO_ORDER.map((k, i) => [k, i]));
       return keys.sort((a, b) => (order.get(a) ?? 999) - (order.get(b) ?? 999));
     }
     const sums: Record<string, number> = {};
