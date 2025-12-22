@@ -154,7 +154,8 @@ function downloadText(filename: string, text: string, mime = "text/plain;charset
   a.href = url;
   a.download = filename;
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function downloadBlob(filename: string, blob: Blob) {
@@ -163,7 +164,8 @@ function downloadBlob(filename: string, blob: Blob) {
   a.href = url;
   a.download = filename;
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // ---------- colors ----------
@@ -389,6 +391,7 @@ export default function FanrenDashboard() {
   const [searchTerms, setSearchTerms] = useState<string>("");
 
   const [loading, setLoading] = useState<{ progress: number; label: string } | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const emoChartRef = useRef<HTMLDivElement | null>(null);
@@ -451,6 +454,7 @@ export default function FanrenDashboard() {
     async (files: FileList | File[]) => {
       const list = Array.from(files);
       if (!list.length) return;
+      setLoadError(null);
 
       const meta = list.map((f) => ({ name: f.name, size: f.size, type: f.type || "" }));
       setStore((prev) => ({ ...prev, loadedFiles: [...prev.loadedFiles, ...meta] }));
@@ -458,32 +462,37 @@ export default function FanrenDashboard() {
       const zipFiles = list.filter((f) => f.name.toLowerCase().endsWith(".zip"));
       const normalFiles = list.filter((f) => !f.name.toLowerCase().endsWith(".zip"));
 
-      for (let zi = 0; zi < zipFiles.length; zi++) {
-        const zf = zipFiles[zi];
-        setLoading({ progress: 5, label: `解压 ${zf.name}` });
-        const buf = await zf.arrayBuffer();
-        const zip = await JSZip.loadAsync(buf);
-        const entries = Object.values(zip.files).filter((e) => !e.dir);
+      try {
+        for (let zi = 0; zi < zipFiles.length; zi++) {
+          const zf = zipFiles[zi];
+          setLoading({ progress: 5, label: `解压 ${zf.name}` });
+          const buf = await zf.arrayBuffer();
+          const zip = await JSZip.loadAsync(buf);
+          const entries = Object.values(zip.files).filter((e) => !e.dir);
 
-        for (let i = 0; i < entries.length; i++) {
-          const e = entries[i];
-          const nm = e.name.split("/").pop() || e.name;
-          const low = nm.toLowerCase();
-          if (!(low.endsWith(".csv") || low.endsWith(".json"))) continue;
-          setLoading({ progress: Math.round((i / Math.max(1, entries.length)) * 90) + 5, label: `解析 ${nm}` });
-          const t = await e.async("string");
-          await ingestFileText(nm, t);
+          for (let i = 0; i < entries.length; i++) {
+            const e = entries[i];
+            const nm = e.name.split("/").pop() || e.name;
+            const low = nm.toLowerCase();
+            if (!(low.endsWith(".csv") || low.endsWith(".json"))) continue;
+            setLoading({ progress: Math.round((i / Math.max(1, entries.length)) * 90) + 5, label: `解析 ${nm}` });
+            const t = await e.async("string");
+            await ingestFileText(nm, t);
+          }
         }
-      }
 
-      for (let i = 0; i < normalFiles.length; i++) {
-        const f = normalFiles[i];
-        setLoading({ progress: Math.round((i / Math.max(1, normalFiles.length)) * 80) + 10, label: `解析 ${f.name}` });
-        const t = await f.text();
-        await ingestFileText(f.name, t);
+        for (let i = 0; i < normalFiles.length; i++) {
+          const f = normalFiles[i];
+          setLoading({ progress: Math.round((i / Math.max(1, normalFiles.length)) * 80) + 10, label: `解析 ${f.name}` });
+          const t = await f.text();
+          await ingestFileText(f.name, t);
+        }
+      } catch (err: any) {
+        const msg = err?.message ? String(err.message) : "文件解析失败，请检查 CSV/JSON 格式。";
+        setLoadError(msg);
+      } finally {
+        setLoading(null);
       }
-
-      setLoading(null);
     },
     [ingestFileText]
   );
@@ -879,13 +888,29 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
   const exportPack = useCallback(async () => {
     const zip = new JSZip();
     const ep = activeEp ?? "unknown";
-    if (emoChartRef.current) zip.file(`ep${ep}/fig_emo_dist.png`, await exportNodeAsPngBlob(emoChartRef.current));
-    if (funcChartRef.current) zip.file(`ep${ep}/fig_func_dist.png`, await exportNodeAsPngBlob(funcChartRef.current));
-    if (curveChartRef.current) {
-      const name = compareMode ? `compare_${curveMode}_${compareSeries}.png` : `ep${ep}_curve_${curveMode}.png`;
-      zip.file(`figs/${name}`, await exportNodeAsPngBlob(curveChartRef.current));
+    try {
+      if (emoChartRef.current) zip.file(`ep${ep}/fig_emo_dist.png`, await exportNodeAsPngBlob(emoChartRef.current));
+    } catch (_err) {
+      // Skip failed chart export to keep the pack usable.
     }
-    if (distCompareRef.current) zip.file(`figs/compare_dist_${distKind}.png`, await exportNodeAsPngBlob(distCompareRef.current));
+    try {
+      if (funcChartRef.current) zip.file(`ep${ep}/fig_func_dist.png`, await exportNodeAsPngBlob(funcChartRef.current));
+    } catch (_err) {
+      // Skip failed chart export to keep the pack usable.
+    }
+    try {
+      if (curveChartRef.current) {
+        const name = compareMode ? `compare_${curveMode}_${compareSeries}.png` : `ep${ep}_curve_${curveMode}.png`;
+        zip.file(`figs/${name}`, await exportNodeAsPngBlob(curveChartRef.current));
+      }
+    } catch (_err) {
+      // Skip failed chart export to keep the pack usable.
+    }
+    try {
+      if (distCompareRef.current) zip.file(`figs/compare_dist_${distKind}.png`, await exportNodeAsPngBlob(distCompareRef.current));
+    } catch (_err) {
+      // Skip failed chart export to keep the pack usable.
+    }
     const md = generateReportMarkdown();
     zip.file(`report_${Date.now()}.md`, md);
     const blob = await zip.generateAsync({ type: "blob" });
@@ -934,6 +959,12 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
                 </div>
               </CardContent>
             </Card>
+          ) : null}
+          {loadError ? (
+            <Alert>
+              <AlertTitle>文件解析失败</AlertTitle>
+              <AlertDescription>{loadError}</AlertDescription>
+            </Alert>
           ) : null}
 
           {ready ? null : (
