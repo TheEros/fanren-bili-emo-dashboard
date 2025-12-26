@@ -72,7 +72,8 @@ function fmtNum(x: any, digits = 1) {
 function parseEpisodeFromName(name: string): string | null {
   const m = name.match(EP_RE);
   if (m?.[1]) return m[1];
-  const m2 = name.match(/(\d{1,4})/);
+  // fallback: 以分隔符包围的两到三位集号（避免 BV 号/时间戳误判）
+  const m2 = name.match(/(?:^|[-_])(\d{2,3})(?:[-_])/);
   return m2?.[1] ?? null;
 }
 
@@ -86,10 +87,23 @@ type Store = {
   loadedFiles: { name: string; size: number; type: string }[];
 };
 
+type DistKind =
+  | "emo_danmaku"
+  | "emo_comment_root"
+  | "emo_comment_reply"
+  | "func_danmaku"
+  | "func_comment_all"
+  | "func_comment_root"
+  | "func_comment_reply";
+
 const TABLE_KEYS = {
   DANMU_EMO: "danmaku_emo_dist",
   COM_ROOT_EMO: "comment_root_emo_dist",
+  COM_REPLY_EMO: "comment_reply_emo_dist",
   DANMU_FUNC: "danmaku_func_dist",
+  COM_ALL_FUNC: "comment_func_dist",
+  COM_ROOT_FUNC: "comment_root_func_dist",
+  COM_REPLY_FUNC: "comment_reply_func_dist",
   DANMU_MIN_EMO: "danmaku_minute_emo_curve",
   DANMU_MIN_FUNC: "danmaku_minute_func_curve",
   BURST_2S: "danmaku_burst_2s",
@@ -97,7 +111,9 @@ const TABLE_KEYS = {
   TOP_TERMS_COMMENT: "top_terms_comment",
   DANMU_MODEL_EMO: "danmaku_model_emo_dist",
   COM_ROOT_MODEL_EMO: "comment_root_model_emo_dist",
+  COM_REPLY_MODEL_EMO: "comment_reply_model_emo_dist",
   MODEL_USAGE: "model_usage",
+  CLEANING_REPORT: "cleaning_report",
 } as const;
 
 function detectTableKey(filename: string): { key: string; ep?: string } | null {
@@ -109,15 +125,21 @@ function detectTableKey(filename: string): { key: string; ep?: string } | null {
 
   if (lower.includes("danmaku_emo_dist") && lower.endsWith(".csv")) return { key: TABLE_KEYS.DANMU_EMO, ep };
   if (lower.includes("comment_root_emo_dist") && lower.endsWith(".csv")) return { key: TABLE_KEYS.COM_ROOT_EMO, ep };
+  if (lower.includes("comment_reply_emo_dist") && lower.endsWith(".csv")) return { key: TABLE_KEYS.COM_REPLY_EMO, ep };
   if (lower.includes("danmaku_model_emo_dist") && lower.endsWith(".csv")) return { key: TABLE_KEYS.DANMU_MODEL_EMO, ep };
   if (lower.includes("comment_root_model_emo_dist") && lower.endsWith(".csv")) return { key: TABLE_KEYS.COM_ROOT_MODEL_EMO, ep };
+  if (lower.includes("comment_reply_model_emo_dist") && lower.endsWith(".csv")) return { key: TABLE_KEYS.COM_REPLY_MODEL_EMO, ep };
   if (lower.includes("model_usage") && lower.endsWith(".csv")) return { key: TABLE_KEYS.MODEL_USAGE, ep };
   if (lower.includes("danmaku_func_dist") && lower.endsWith(".csv")) return { key: TABLE_KEYS.DANMU_FUNC, ep };
+  if (lower.includes("comment_func_dist") && lower.endsWith(".csv")) return { key: TABLE_KEYS.COM_ALL_FUNC, ep };
+  if (lower.includes("comment_root_func_dist") && lower.endsWith(".csv")) return { key: TABLE_KEYS.COM_ROOT_FUNC, ep };
+  if (lower.includes("comment_reply_func_dist") && lower.endsWith(".csv")) return { key: TABLE_KEYS.COM_REPLY_FUNC, ep };
   if (lower.includes("danmaku_minute_emo_curve") && lower.endsWith(".csv")) return { key: TABLE_KEYS.DANMU_MIN_EMO, ep };
   if (lower.includes("danmaku_minute_func_curve") && lower.endsWith(".csv")) return { key: TABLE_KEYS.DANMU_MIN_FUNC, ep };
   if (lower.includes("danmaku_burst_2s") && lower.endsWith(".csv")) return { key: TABLE_KEYS.BURST_2S, ep };
   if (lower.includes("top_terms_danmaku") && lower.endsWith(".csv")) return { key: TABLE_KEYS.TOP_TERMS_DANMU, ep };
   if (lower.includes("top_terms_comment") && lower.endsWith(".csv")) return { key: TABLE_KEYS.TOP_TERMS_COMMENT, ep };
+  if (lower.includes("cleaning_report") && lower.endsWith(".csv")) return { key: TABLE_KEYS.CLEANING_REPORT, ep };
 
   return null;
 }
@@ -221,7 +243,17 @@ function colorForKey(key: string, mode: "emo" | "func") {
 
 // ---------- export ----------
 async function exportNodeAsPng(node: HTMLElement, filename: string) {
-  const dataUrl = await toPng(node, { cacheBust: true, pixelRatio: 2, backgroundColor: "#ffffff" });
+  // 导出稳定性：避免外链字体导致 canvas 污染 / 加载失败
+  await new Promise((r) => setTimeout(r, 150));
+  const fontStack =
+    'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Noto Sans CJK SC", Arial, sans-serif';
+  const dataUrl = await toPng(node, {
+    cacheBust: true,
+    pixelRatio: 2,
+    backgroundColor: "#ffffff",
+    useCORS: true,
+    style: { fontFamily: fontStack },
+  });
   const a = document.createElement("a");
   a.href = dataUrl;
   a.download = filename;
@@ -229,7 +261,16 @@ async function exportNodeAsPng(node: HTMLElement, filename: string) {
 }
 
 async function exportNodeAsPngBlob(node: HTMLElement) {
-  const dataUrl = await toPng(node, { cacheBust: true, pixelRatio: 2, backgroundColor: "#ffffff" });
+  await new Promise((r) => setTimeout(r, 150));
+  const fontStack =
+    'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Noto Sans CJK SC", Arial, sans-serif';
+  const dataUrl = await toPng(node, {
+    cacheBust: true,
+    pixelRatio: 2,
+    backgroundColor: "#ffffff",
+    useCORS: true,
+    style: { fontFamily: fontStack },
+  });
   const res = await fetch(dataUrl);
   return await res.blob();
 }
@@ -379,7 +420,7 @@ export default function FanrenDashboard() {
   const [intervalTopK, setIntervalTopK] = useState<number>(3);
 
   const [distCompareEps, setDistCompareEps] = useState<string[]>([]);
-  const [distKind, setDistKind] = useState<"emo_danmaku" | "emo_comment" | "func">("emo_danmaku");
+  const [distKind, setDistKind] = useState<DistKind>("emo_danmaku");
   const [distStackTopN, setDistStackTopN] = useState<number>(6);
 
   const [reportText, setReportText] = useState<string>("");
@@ -720,9 +761,19 @@ const usageRoot = useMemo(() => modelUsage.find((r: any) => String(r.dataset) ==
   const distCompareData = useMemo(() => {
     if (!distCompareEps.length) return { rows: [], keys: [] as string[], label: "", colors: {} as Record<string, string> };
 
-    if (distKind === "emo_danmaku" || distKind === "emo_comment") {
-      const tableKey = distKind === "emo_danmaku" ? TABLE_KEYS.DANMU_EMO : TABLE_KEYS.COM_ROOT_EMO;
+    const isEmo = distKind.startsWith("emo_");
+
+    if (isEmo) {
+      const tableKey =
+        distKind === "emo_danmaku"
+          ? TABLE_KEYS.DANMU_EMO
+          : distKind === "emo_comment_root"
+          ? TABLE_KEYS.COM_ROOT_EMO
+          : TABLE_KEYS.COM_REPLY_EMO;
       const keys = [...EMO_ORDER];
+
+      const hasAny = distCompareEps.some((ep) => (store.tablesByEp[ep]?.[tableKey]?.length ?? 0) > 0);
+      if (!hasAny) return { rows: [], keys: [], label: "", colors: {} as Record<string, string> };
 
       const rows = distCompareEps.map((ep) => {
         const dist = store.tablesByEp[ep]?.[tableKey] ?? [];
@@ -736,12 +787,30 @@ const usageRoot = useMemo(() => modelUsage.find((r: any) => String(r.dataset) ==
         return row;
       });
 
-      return { rows, keys, label: distKind === "emo_danmaku" ? "弹幕情绪分布（堆叠）" : "根评论情绪分布（堆叠）", colors: EMO_COLOR_MAP };
+      const label =
+        distKind === "emo_danmaku"
+          ? "弹幕情绪分布（堆叠）"
+          : distKind === "emo_comment_root"
+          ? "根评论情绪分布（堆叠）"
+          : "回复评论情绪分布（堆叠）";
+      return { rows, keys, label, colors: EMO_COLOR_MAP };
     }
+
+    const funcTableKey =
+      distKind === "func_danmaku"
+        ? TABLE_KEYS.DANMU_FUNC
+        : distKind === "func_comment_all"
+        ? TABLE_KEYS.COM_ALL_FUNC
+        : distKind === "func_comment_root"
+        ? TABLE_KEYS.COM_ROOT_FUNC
+        : TABLE_KEYS.COM_REPLY_FUNC;
+
+    const hasAny = distCompareEps.some((ep) => (store.tablesByEp[ep]?.[funcTableKey]?.length ?? 0) > 0);
+    if (!hasAny) return { rows: [], keys: [], label: "", colors: {} as Record<string, string> };
 
     const funcMean: Record<string, number[]> = {};
     for (const ep of distCompareEps) {
-      const dist = store.tablesByEp[ep]?.[TABLE_KEYS.DANMU_FUNC] ?? [];
+      const dist = store.tablesByEp[ep]?.[funcTableKey] ?? [];
       for (const r of dist as any[]) {
         const func = String(r.func ?? r.label ?? "other");
         funcMean[func] = funcMean[func] ?? [];
@@ -756,7 +825,7 @@ const usageRoot = useMemo(() => modelUsage.find((r: any) => String(r.dataset) ==
     keys.forEach((k) => (colors[k] = k === "other" ? "#94a3b8" : stableColorFromKey("func_" + k)));
 
     const rows = distCompareEps.map((ep) => {
-      const dist = store.tablesByEp[ep]?.[TABLE_KEYS.DANMU_FUNC] ?? [];
+      const dist = store.tablesByEp[ep]?.[funcTableKey] ?? [];
       const m: Record<string, number> = {};
       for (const r of dist as any[]) {
         const func = String(r.func ?? r.label ?? "other");
@@ -769,8 +838,52 @@ const usageRoot = useMemo(() => modelUsage.find((r: any) => String(r.dataset) ==
       return row;
     });
 
-    return { rows, keys, label: "弹幕功能分布（TopN + other）", colors };
+    const label =
+      distKind === "func_danmaku"
+        ? "弹幕功能分布（TopN + other）"
+        : distKind === "func_comment_all"
+        ? "评论功能分布（总体）"
+        : distKind === "func_comment_root"
+        ? "评论功能分布（根评）"
+        : "评论功能分布（回复）";
+    return { rows, keys, label, colors };
   }, [distCompareEps, distKind, store.tablesByEp, distStackTopN]);
+
+  const distCompareMissing = useMemo(() => {
+    if (!distCompareEps.length) return { missingEps: [] as string[], filePattern: "" };
+
+    const filePattern =
+      distKind === "emo_danmaku"
+        ? "danmaku_emo_dist_ep{ep}.csv"
+        : distKind === "emo_comment_root"
+        ? "comment_root_emo_dist_ep{ep}.csv"
+        : distKind === "emo_comment_reply"
+        ? "comment_reply_emo_dist_ep{ep}.csv"
+        : distKind === "func_danmaku"
+        ? "danmaku_func_dist_ep{ep}.csv"
+        : distKind === "func_comment_all"
+        ? "comment_func_dist_ep{ep}.csv"
+        : distKind === "func_comment_root"
+        ? "comment_root_func_dist_ep{ep}.csv"
+        : "comment_reply_func_dist_ep{ep}.csv";
+
+    const tableKey = distKind.startsWith("emo_")
+      ? distKind === "emo_danmaku"
+        ? TABLE_KEYS.DANMU_EMO
+        : distKind === "emo_comment_root"
+        ? TABLE_KEYS.COM_ROOT_EMO
+        : TABLE_KEYS.COM_REPLY_EMO
+      : distKind === "func_danmaku"
+      ? TABLE_KEYS.DANMU_FUNC
+      : distKind === "func_comment_all"
+      ? TABLE_KEYS.COM_ALL_FUNC
+      : distKind === "func_comment_root"
+      ? TABLE_KEYS.COM_ROOT_FUNC
+      : TABLE_KEYS.COM_REPLY_FUNC;
+
+    const missingEps = distCompareEps.filter((ep) => (store.tablesByEp[ep]?.[tableKey]?.length ?? 0) === 0);
+    return { missingEps, filePattern };
+  }, [distCompareEps, distKind, store.tablesByEp]);
 
   const burstRows = useMemo(() => {
     const rows = (tables[TABLE_KEYS.BURST_2S] ?? []).map((r) => ({
@@ -1237,12 +1350,16 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
                           onChange={(v) => setDistKind(v as any)}
                           options={[
                             { label: "弹幕情绪分布（堆叠）", value: "emo_danmaku" },
-                            { label: "根评论情绪分布（堆叠）", value: "emo_comment" },
-                            { label: "弹幕功能分布（TopN+other）", value: "func" },
+                            { label: "根评论情绪分布（堆叠）", value: "emo_comment_root" },
+                            { label: "回复评论情绪分布（堆叠）", value: "emo_comment_reply" },
+                            { label: "弹幕功能分布（TopN+other）", value: "func_danmaku" },
+                            { label: "评论功能分布（总体）", value: "func_comment_all" },
+                            { label: "评论功能分布（根评）", value: "func_comment_root" },
+                            { label: "评论功能分布（回复）", value: "func_comment_reply" },
                           ]}
                           className="mt-2"
                         />
-                        {distKind === "func" ? (
+                        {distKind.startsWith("func_") ? (
                           <>
                             <div className="mt-3 flex items-center justify-between">
                               <Label>TopN</Label>
@@ -1261,6 +1378,16 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
                           ))}
                         </div>
                         <div className="mt-2 text-xs text-slate-500">建议：开篇/设定集 + 铺垫集 + 高能集（形成结构差异）。</div>
+
+                        {distCompareMissing.missingEps.length ? (
+                          <Alert className="mt-3">
+                            <AlertTitle>部分集数缺少所需表</AlertTitle>
+                            <AlertDescription>
+                              当前对比类型需要 <code>{distCompareMissing.filePattern}</code>。缺失集：{distCompareMissing.missingEps.map((e) => `第${e}集`).join("、")}。
+                              （旧 zip 上传也不会报错，但该集将无法参与此对比）
+                            </AlertDescription>
+                          </Alert>
+                        ) : null}
                       </div>
                     </div>
 
@@ -1279,7 +1406,7 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
                           </BarChart>
                         </ResponsiveContainer>
                       ) : (
-                        <EmptyState title="缺少多集分布数据" desc="请上传所选集数的 dist 表（emo_dist / comment_root_emo_dist / func_dist）。" />
+                        <EmptyState title="缺少多集分布数据" desc="请上传所选集数的 dist 表（danmaku_emo_dist / comment_root_emo_dist / comment_reply_emo_dist / *_func_dist）。" />
                       )}
                     </div>
                   </CardContent>

@@ -1,11 +1,14 @@
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap");
+/*
+  为了提升 html-to-image 导出稳定性：避免依赖外链 Google Fonts。
+  如需自定义字体，建议改用本地可用字体或将字体文件打包进项目。
+*/
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
-  font-family: "Space Grotesk", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Noto Sans CJK SC", Arial, sans-serif;
   background-color: #f8fafc;
   background-image:
     radial-gradient(900px 500px at 8% -10%, rgba(14, 116, 144, 0.15), transparent 60%),
