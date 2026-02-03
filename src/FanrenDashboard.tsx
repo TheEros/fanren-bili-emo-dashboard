@@ -215,7 +215,7 @@ function hslToHex(h: number, s: number, l: number) {
   else if (120 <= h && h < 180) [r, g, b] = [0, c, x];
   else if (180 <= h && h < 240) [r, g, b] = [0, x, c];
   else if (240 <= h && h < 300) [r, g, b] = [x, 0, c];
-  else [r, g, b] = [c, 0, x];
+  else[r, g, b] = [c, 0, x];
   const toHex = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, "0");
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
@@ -609,49 +609,49 @@ export default function FanrenDashboard() {
     return Object.values(map).sort((a: any, b: any) => (order.get(a.emo) ?? 999) - (order.get(b.emo) ?? 999));
   }, [danmuEmo, comRootEmo]);
 
-const danmuModelEmo = useMemo(
-  () =>
-    (tables[TABLE_KEYS.DANMU_MODEL_EMO] ?? []).map((r) => ({
-      label: String((r as any).model_emo ?? (r as any).emo ?? (r as any).label ?? "neu"),
-      ratio: safeNumber((r as any).ratio),
-      cnt: safeNumber((r as any).cnt),
-    })),
-  [tables]
-);
+  const danmuModelEmo = useMemo(
+    () =>
+      (tables[TABLE_KEYS.DANMU_MODEL_EMO] ?? []).map((r) => ({
+        label: String((r as any).model_emo ?? (r as any).emo ?? (r as any).label ?? "neu"),
+        ratio: safeNumber((r as any).ratio),
+        cnt: safeNumber((r as any).cnt),
+      })),
+    [tables]
+  );
 
-const comRootModelEmo = useMemo(
-  () =>
-    (tables[TABLE_KEYS.COM_ROOT_MODEL_EMO] ?? []).map((r) => ({
-      label: String((r as any).model_emo ?? (r as any).emo ?? (r as any).label ?? "neu"),
-      ratio: safeNumber((r as any).ratio),
-      cnt: safeNumber((r as any).cnt),
-    })),
-  [tables]
-);
+  const comRootModelEmo = useMemo(
+    () =>
+      (tables[TABLE_KEYS.COM_ROOT_MODEL_EMO] ?? []).map((r) => ({
+        label: String((r as any).model_emo ?? (r as any).emo ?? (r as any).label ?? "neu"),
+        ratio: safeNumber((r as any).ratio),
+        cnt: safeNumber((r as any).cnt),
+      })),
+    [tables]
+  );
 
-const modelUsage = useMemo(() => (tables[TABLE_KEYS.MODEL_USAGE] ?? []) as any[], [tables]);
+  const modelUsage = useMemo(() => (tables[TABLE_KEYS.MODEL_USAGE] ?? []) as any[], [tables]);
 
 
-const polBars = useMemo(() => {
-  const map: Record<string, any> = {};
-  for (const r of danmuModelEmo) {
-    const k = String((r as any).label ?? "neu");
-    map[k] = map[k] ?? { label: k };
-    map[k].danmaku = safeNumber((r as any).ratio);
-    map[k].danmaku_cnt = safeNumber((r as any).cnt);
-  }
-  for (const r of comRootModelEmo) {
-    const k = String((r as any).label ?? "neu");
-    map[k] = map[k] ?? { label: k };
-    map[k].comment = safeNumber((r as any).ratio);
-    map[k].comment_cnt = safeNumber((r as any).cnt);
-  }
-  const order = ["pos", "neu", "neg"];
-  return order.filter((k) => map[k]).map((k) => map[k]).concat(Object.values(map).filter((v: any) => !order.includes(String(v.label))));
-}, [danmuModelEmo, comRootModelEmo]);
+  const polBars = useMemo(() => {
+    const map: Record<string, any> = {};
+    for (const r of danmuModelEmo) {
+      const k = String((r as any).label ?? "neu");
+      map[k] = map[k] ?? { label: k };
+      map[k].danmaku = safeNumber((r as any).ratio);
+      map[k].danmaku_cnt = safeNumber((r as any).cnt);
+    }
+    for (const r of comRootModelEmo) {
+      const k = String((r as any).label ?? "neu");
+      map[k] = map[k] ?? { label: k };
+      map[k].comment = safeNumber((r as any).ratio);
+      map[k].comment_cnt = safeNumber((r as any).cnt);
+    }
+    const order = ["pos", "neu", "neg"];
+    return order.filter((k) => map[k]).map((k) => map[k]).concat(Object.values(map).filter((v: any) => !order.includes(String(v.label))));
+  }, [danmuModelEmo, comRootModelEmo]);
 
-const usageDanmu = useMemo(() => modelUsage.find((r: any) => String(r.dataset) === "danmaku") ?? null, [modelUsage]);
-const usageRoot = useMemo(() => modelUsage.find((r: any) => String(r.dataset) === "comment_root") ?? null, [modelUsage]);
+  const usageDanmu = useMemo(() => modelUsage.find((r: any) => String(r.dataset) === "danmaku") ?? null, [modelUsage]);
+  const usageRoot = useMemo(() => modelUsage.find((r: any) => String(r.dataset) === "comment_root") ?? null, [modelUsage]);
 
   const danmuFunc = useMemo(
     () => (tables[TABLE_KEYS.DANMU_FUNC] ?? []).map((r) => ({ ...r, ratio: safeNumber((r as any).ratio), cnt: safeNumber((r as any).cnt) })),
@@ -768,8 +768,8 @@ const usageRoot = useMemo(() => modelUsage.find((r: any) => String(r.dataset) ==
         distKind === "emo_danmaku"
           ? TABLE_KEYS.DANMU_EMO
           : distKind === "emo_comment_root"
-          ? TABLE_KEYS.COM_ROOT_EMO
-          : TABLE_KEYS.COM_REPLY_EMO;
+            ? TABLE_KEYS.COM_ROOT_EMO
+            : TABLE_KEYS.COM_REPLY_EMO;
       const keys = [...EMO_ORDER];
 
       const hasAny = distCompareEps.some((ep) => (store.tablesByEp[ep]?.[tableKey]?.length ?? 0) > 0);
@@ -791,8 +791,8 @@ const usageRoot = useMemo(() => modelUsage.find((r: any) => String(r.dataset) ==
         distKind === "emo_danmaku"
           ? "弹幕情绪分布（堆叠）"
           : distKind === "emo_comment_root"
-          ? "根评论情绪分布（堆叠）"
-          : "回复评论情绪分布（堆叠）";
+            ? "根评论情绪分布（堆叠）"
+            : "回复评论情绪分布（堆叠）";
       return { rows, keys, label, colors: EMO_COLOR_MAP };
     }
 
@@ -800,10 +800,10 @@ const usageRoot = useMemo(() => modelUsage.find((r: any) => String(r.dataset) ==
       distKind === "func_danmaku"
         ? TABLE_KEYS.DANMU_FUNC
         : distKind === "func_comment_all"
-        ? TABLE_KEYS.COM_ALL_FUNC
-        : distKind === "func_comment_root"
-        ? TABLE_KEYS.COM_ROOT_FUNC
-        : TABLE_KEYS.COM_REPLY_FUNC;
+          ? TABLE_KEYS.COM_ALL_FUNC
+          : distKind === "func_comment_root"
+            ? TABLE_KEYS.COM_ROOT_FUNC
+            : TABLE_KEYS.COM_REPLY_FUNC;
 
     const hasAny = distCompareEps.some((ep) => (store.tablesByEp[ep]?.[funcTableKey]?.length ?? 0) > 0);
     if (!hasAny) return { rows: [], keys: [], label: "", colors: {} as Record<string, string> };
@@ -842,10 +842,10 @@ const usageRoot = useMemo(() => modelUsage.find((r: any) => String(r.dataset) ==
       distKind === "func_danmaku"
         ? "弹幕功能分布（TopN + other）"
         : distKind === "func_comment_all"
-        ? "评论功能分布（总体）"
-        : distKind === "func_comment_root"
-        ? "评论功能分布（根评）"
-        : "评论功能分布（回复）";
+          ? "评论功能分布（总体）"
+          : distKind === "func_comment_root"
+            ? "评论功能分布（根评）"
+            : "评论功能分布（回复）";
     return { rows, keys, label, colors };
   }, [distCompareEps, distKind, store.tablesByEp, distStackTopN]);
 
@@ -856,30 +856,30 @@ const usageRoot = useMemo(() => modelUsage.find((r: any) => String(r.dataset) ==
       distKind === "emo_danmaku"
         ? "danmaku_emo_dist_ep{ep}.csv"
         : distKind === "emo_comment_root"
-        ? "comment_root_emo_dist_ep{ep}.csv"
-        : distKind === "emo_comment_reply"
-        ? "comment_reply_emo_dist_ep{ep}.csv"
-        : distKind === "func_danmaku"
-        ? "danmaku_func_dist_ep{ep}.csv"
-        : distKind === "func_comment_all"
-        ? "comment_func_dist_ep{ep}.csv"
-        : distKind === "func_comment_root"
-        ? "comment_root_func_dist_ep{ep}.csv"
-        : "comment_reply_func_dist_ep{ep}.csv";
+          ? "comment_root_emo_dist_ep{ep}.csv"
+          : distKind === "emo_comment_reply"
+            ? "comment_reply_emo_dist_ep{ep}.csv"
+            : distKind === "func_danmaku"
+              ? "danmaku_func_dist_ep{ep}.csv"
+              : distKind === "func_comment_all"
+                ? "comment_func_dist_ep{ep}.csv"
+                : distKind === "func_comment_root"
+                  ? "comment_root_func_dist_ep{ep}.csv"
+                  : "comment_reply_func_dist_ep{ep}.csv";
 
     const tableKey = distKind.startsWith("emo_")
       ? distKind === "emo_danmaku"
         ? TABLE_KEYS.DANMU_EMO
         : distKind === "emo_comment_root"
-        ? TABLE_KEYS.COM_ROOT_EMO
-        : TABLE_KEYS.COM_REPLY_EMO
+          ? TABLE_KEYS.COM_ROOT_EMO
+          : TABLE_KEYS.COM_REPLY_EMO
       : distKind === "func_danmaku"
-      ? TABLE_KEYS.DANMU_FUNC
-      : distKind === "func_comment_all"
-      ? TABLE_KEYS.COM_ALL_FUNC
-      : distKind === "func_comment_root"
-      ? TABLE_KEYS.COM_ROOT_FUNC
-      : TABLE_KEYS.COM_REPLY_FUNC;
+        ? TABLE_KEYS.DANMU_FUNC
+        : distKind === "func_comment_all"
+          ? TABLE_KEYS.COM_ALL_FUNC
+          : distKind === "func_comment_root"
+            ? TABLE_KEYS.COM_ROOT_FUNC
+            : TABLE_KEYS.COM_REPLY_FUNC;
 
     const missingEps = distCompareEps.filter((ep) => (store.tablesByEp[ep]?.[tableKey]?.length ?? 0) === 0);
     return { missingEps, filePattern };
@@ -961,23 +961,22 @@ const usageRoot = useMemo(() => modelUsage.find((r: any) => String(r.dataset) ==
     const cmpSummary =
       compareMode && (compareCurveCombined as any[]).length
         ? compareEps
-            .map((epx) => {
-              const epKey = `ep${epx}`;
-              const p = (comparePeaks as any[]).find((x) => x.epKey === epKey);
-              const topInts = (intervalsCompare as any)[epKey] ?? [];
-              const intStr = topInts.slice(0, 3).map((it: any) => `${it.start}–${it.end}m`).join("、");
-              return `- 第${epx}集：峰值@${p?.minute ?? "—"}m；Top区间：${intStr || "—"}`;
-            })
-            .join("\n")
+          .map((epx) => {
+            const epKey = `ep${epx}`;
+            const p = (comparePeaks as any[]).find((x) => x.epKey === epKey);
+            const topInts = (intervalsCompare as any)[epKey] ?? [];
+            const intStr = topInts.slice(0, 3).map((it: any) => `${it.start}–${it.end}m`).join("、");
+            return `- 第${epx}集：峰值@${p?.minute ?? "—"}m；Top区间：${intStr || "—"}`;
+          })
+          .join("\n")
         : "";
 
     const caption1 = `图1 展示第${ep}集弹幕与根评论的情绪分布对比：弹幕Top情绪为 ${topDanmuEmo}；根评论Top情绪为 ${topRootEmo}。`;
     const caption2 = `图2 展示第${ep}集弹幕功能分布（Top${topNFunc}）：Top功能为 ${topFunc}。`;
     const caption3 = compareMode
       ? `图3 展示多集 minute 曲线对比（维度=${compareSeries}）：各集峰值与高峰区间可据图与下表归纳。`
-      : `图3 展示第${ep}集 minute 曲线（维度=${curveMode}）；在 ${intervalSeriesKey} 维度下的峰值为 @${peak?.minute ?? "—"}m，Top区间为：${
-          (ints || []).slice(0, 3).map((it: any) => `${it.start}–${it.end}m`).join("、") || "—"
-        }。`;
+      : `图3 展示第${ep}集 minute 曲线（维度=${curveMode}）；在 ${intervalSeriesKey} 维度下的峰值为 @${peak?.minute ?? "—"}m，Top区间为：${(ints || []).slice(0, 3).map((it: any) => `${it.start}–${it.end}m`).join("、") || "—"
+      }。`;
     const caption4 = `图4 展示多集分布对比（${distKind}，堆叠）：用于论证“不同剧情功能集 → 情绪/互动结构差异”。`;
 
     return `# 论文图注与快速结论（自动生成）
@@ -1115,7 +1114,7 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                   <div>
                     <CardTitle className="text-lg">控制面板</CardTitle>
-                    <CardDescription>单集分析用于写 4.x；多集对比适合写“不同剧情功能集的差异”。</CardDescription>
+                    {/* <CardDescription>单集分析用于写 4.x；多集对比适合写“不同剧情功能集的差异”。</CardDescription> */}
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
                     <div className="min-w-[180px]">
@@ -1199,7 +1198,7 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
                     <StatCard title="弹幕条数" value={(epStats as any)?.byStats?.danmu_total ?? (epStats as any)?.basic?.danmu_total ?? "—"} hint={<span>每分钟平均密度：{fmtNum((epStats as any)?.byStats?.minute_avg_density ?? (epStats as any)?.basic?.minute_avg_density, 1)}</span>} />
                     <StatCard title="根评论数" value={(epStats as any)?.byStats?.root_cnt ?? "—"} hint={<span>（parent=0）</span>} />
                     <StatCard title="回复数" value={(epStats as any)?.byStats?.reply_cnt ?? "—"} hint={<span>（parent!=0）</span>} />
-                    <StatCard title="写作助手" value={<span className="text-base">图注/结论</span>} hint={<span>见「图注&导出」</span>} />
+                    {/* <StatCard title="写作助手" value={<span className="text-base">图注/结论</span>} hint={<span>见「图注&导出」</span>} /> */}
                   </div>
                 </div>
               </CardHeader>
@@ -1255,41 +1254,41 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
                       </div>
                     </CardContent>
                   </Card>
-<Card>
-  <CardHeader className="pb-2">
-    <CardTitle className="text-base flex items-center gap-2">
-      <Sparkles className="h-4 w-4" />
-      模型极性分布（model_emo，仅统计 model_used=True）
-    </CardTitle>
-    <CardDescription className="text-xs">
-      {usageDanmu ? `弹幕：${Math.round(safeNumber(usageDanmu.ratio) * 100)}% 调用覆盖` : "弹幕：未上传 model_usage 表"}
-      {" · "}
-      {usageRoot ? `根评：${Math.round(safeNumber(usageRoot.ratio) * 100)}% 调用覆盖` : "根评：未上传 model_usage 表"}
-    </CardDescription>
-  </CardHeader>
-  <CardContent>
-    <div className="h-[360px]">
-      {polBars.length ? (
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={polBars} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-            <YAxis tickFormatter={(v) => `${Math.round((v as number) * 100)}%`} />
-            <Tooltip formatter={(v: any) => `${Math.round((v as number) * 1000) / 10}%`} />
-            <Legend />
-            <Bar dataKey="danmaku" name="弹幕" fill={colorForKey("pos", "emo")} />
-            <Bar dataKey="comment" name="根评论" fill={colorForKey("neg", "emo")} />
-          </BarChart>
-        </ResponsiveContainer>
-      ) : (
-        <EmptyState title="暂无数据" desc="请上传 tables/ 下的 danmaku_model_emo_dist_ep*.csv、comment_root_model_emo_dist_ep*.csv" />
-      )}
-    </div>
-    <div className="mt-3 text-xs text-slate-600">
-      建议写法：将 pos/neg/neu 作为“极性维度”，与论文的 laugh/touching/praise 等“类型维度”区分开。
-    </div>
-  </CardContent>
-</Card>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Sparkles className="h-4 w-4" />
+                        模型极性分布（model_emo，仅统计 model_used=True）
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        {usageDanmu ? `弹幕：${Math.round(safeNumber(usageDanmu.ratio) * 100)}% 调用覆盖` : "弹幕：未上传 model_usage 表"}
+                        {" · "}
+                        {usageRoot ? `根评：${Math.round(safeNumber(usageRoot.ratio) * 100)}% 调用覆盖` : "根评：未上传 model_usage 表"}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[360px]">
+                        {polBars.length ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={polBars} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                              <YAxis tickFormatter={(v) => `${Math.round((v as number) * 100)}%`} />
+                              <Tooltip formatter={(v: any) => `${Math.round((v as number) * 1000) / 10}%`} />
+                              <Legend />
+                              <Bar dataKey="danmaku" name="弹幕" fill={colorForKey("pos", "emo")} />
+                              <Bar dataKey="comment" name="根评论" fill={colorForKey("neg", "emo")} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <EmptyState title="暂无数据" desc="请上传 tables/ 下的 danmaku_model_emo_dist_ep*.csv、comment_root_model_emo_dist_ep*.csv" />
+                        )}
+                      </div>
+                      <div className="mt-3 text-xs text-slate-600">
+                        建议写法：将 pos/neg/neu 作为“极性维度”，与论文的 laugh/touching/praise 等“类型维度”区分开。
+                      </div>
+                    </CardContent>
+                  </Card>
 
 
                   <Card>
@@ -1440,10 +1439,10 @@ ${compareMode ? `## 多集对比要点（${compareSeries})\n${cmpSummary}` : ""}
                               <Legend />
                               {markIntervals
                                 ? compareEps.flatMap((ep) => {
-                                    const epKey = `ep${ep}`;
-                                    const ints = (intervalsCompare as any)[epKey] ?? [];
-                                    return ints.map((it: any, idx: number) => <ReferenceArea key={`${epKey}-${idx}`} x1={it.start} x2={it.end} fill={compareColors[epKey]} fillOpacity={0.08} strokeOpacity={0} />);
-                                  })
+                                  const epKey = `ep${ep}`;
+                                  const ints = (intervalsCompare as any)[epKey] ?? [];
+                                  return ints.map((it: any, idx: number) => <ReferenceArea key={`${epKey}-${idx}`} x1={it.start} x2={it.end} fill={compareColors[epKey]} fillOpacity={0.08} strokeOpacity={0} />);
+                                })
                                 : null}
 
                               {compareEps.map((ep) => {
